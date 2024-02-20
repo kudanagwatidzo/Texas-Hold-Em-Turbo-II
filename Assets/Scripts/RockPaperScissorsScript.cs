@@ -8,22 +8,28 @@ using TMPro;
 public class RockPaperScissorsScript : MonoBehaviour
 {
     // Todo, enum from controller input to RPS
-
+    private int winner, loser;
     private float timerDuration = 5.5f;
-    private string p1Option, p2Option, winner;
+    private string p1Option, p2Option;
     private bool isP1Locked, isP2Locked, rpsCompleted;
+
+    private GameObject[] players = new GameObject[2];
     public TextMeshProUGUI timerVisual;
 
     // Start is called before the first frame update
     void Start()
     {
+        // Reset RPS 
+        winner = 0;
         p1Option = "";
         p2Option = "";
-        winner = "";
         isP1Locked = false;
         isP2Locked = false;
         rpsCompleted = false;
+        // Grab the needed game objects
         timerVisual = GameObject.Find("Timer").GetComponent<TextMeshProUGUI>();
+        players[0] = GameObject.Find("Player1");
+        players[1] = GameObject.Find("Player2");
     }
 
     // Update is called once per frame
@@ -33,12 +39,20 @@ public class RockPaperScissorsScript : MonoBehaviour
         float seconds = Mathf.FloorToInt(timerDuration % 60);
         float milliseconds = (int)(timerDuration * 100f) % 100;
 
-        if (rpsCompleted) timerVisual.text = winner + " Wins!";
+        if (rpsCompleted) timerVisual.text = "Player " + (winner + 1).ToString() + " Wins!";
         else timerVisual.text = string.Format("{0:00}:{1:00}", seconds, milliseconds);
         // When the timer hits 0, start rock paper scissors sequence
         if (timerDuration < 0 && !rpsCompleted)
         {
-            winner = playRockPaperScissors();
+            winner = playRockPaperScissors() - 1;
+            loser = 1 - winner;
+
+            if (winner >= 0)
+            {
+                players[winner].GetComponent<Animator>().SetTrigger("Attack");
+                players[loser].GetComponent<Animator>().SetTrigger("OnDeath");
+            }
+
         }
         else
         {
@@ -46,14 +60,14 @@ public class RockPaperScissorsScript : MonoBehaviour
         }
     }
 
-    private string playRockPaperScissors()
+    private int playRockPaperScissors()
     {
         Debug.Log("Starting RPS");
         // If two players tie, reset the RPS situation
         if (string.Equals(p1Option, p2Option))
         {
             resetRPS();
-            return "Tied";
+            return 0;
         }
         else
         {
@@ -63,16 +77,16 @@ public class RockPaperScissorsScript : MonoBehaviour
 
     }
 
-    private string checkRPS ()
+    private int checkRPS ()
     {
         Debug.Log("Player 1 Chose: " + p1Option);
         Debug.Log("Player 2 Chose: " + p2Option);
-        if (p1Option == "") return "p2";
-        else if (p2Option == "") return "p1";
+        if (p1Option == "") return 2;
+        else if (p2Option == "") return 1;
         else if ((p1Option == "rock" && p2Option == "scissors") || 
             (p1Option == "paper" && p2Option == "rock") || 
-            (p1Option == "scissors" && p2Option == "paper")) return "p1";
-        else return "p2";
+            (p1Option == "scissors" && p2Option == "paper")) return 1;
+        else return 2;
     }
 
     private void resetRPS ()
