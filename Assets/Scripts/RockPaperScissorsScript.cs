@@ -14,6 +14,7 @@ public class RockPaperScissorsScript : MonoBehaviour
     private bool isP1Locked, isP2Locked, rpsCompleted;
 
     private GameObject[] players = new GameObject[2];
+    private GameObject[] playerControls = new GameObject[2];
     public TextMeshProUGUI timerVisual;
 
     // Start is called before the first frame update
@@ -42,13 +43,15 @@ public class RockPaperScissorsScript : MonoBehaviour
         if (rpsCompleted) timerVisual.text = "Player " + (winner + 1).ToString() + " Wins!";
         else timerVisual.text = string.Format("{0:00}:{1:00}", seconds, milliseconds);
         // When the timer hits 0, start rock paper scissors sequence
-        if (timerDuration < 0 && !rpsCompleted)
+        if (((timerDuration < 0) || (isP1Locked && isP2Locked)) && !rpsCompleted)
         {
             winner = playRockPaperScissors() - 1;
             loser = 1 - winner;
 
             if (winner >= 0)
             {
+                players[0].transform.GetChild(0).gameObject.SetActive(false);
+                players[1].transform.GetChild(0).gameObject.SetActive(false);
                 players[winner].GetComponent<Animator>().SetTrigger("Attack");
                 players[loser].GetComponent<Animator>().SetTrigger("OnDeath");
             }
@@ -96,6 +99,10 @@ public class RockPaperScissorsScript : MonoBehaviour
         p2Option = "";
         isP1Locked = false;
         isP2Locked = false;
+        players[0].transform.GetChild(0).gameObject.SetActive(true);
+        players[1].transform.GetChild(0).gameObject.SetActive(true);
+        players[0].GetComponent<Animator>().SetBool("Stance", false);
+        players[1].GetComponent<Animator>().SetBool("Stance", false);
     }
 
     private void readRPSInputs ()
@@ -122,6 +129,10 @@ public class RockPaperScissorsScript : MonoBehaviour
                     p1Option = "paper";
                 }
                 isP1Locked = true;
+                // Make the controls disappear and start run animation
+                players[0].transform.GetChild(0).gameObject.SetActive(false);
+                players[0].GetComponent<Animator>().SetBool("Stance", true);
+
                 Debug.Log("P1 has locked: " + p1Option);
             }
         }
@@ -142,6 +153,10 @@ public class RockPaperScissorsScript : MonoBehaviour
                     p2Option = "paper";
                 }
                 isP2Locked = true;
+                // Make the controls disappear
+                players[1].transform.GetChild(0).gameObject.SetActive(false);
+                players[1].GetComponent<Animator>().SetBool("Stance", true);
+
                 Debug.Log("P2 has locked: " + p2Option);
             }
         }
