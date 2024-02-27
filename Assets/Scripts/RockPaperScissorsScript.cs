@@ -8,13 +8,14 @@ using TMPro;
 
 public class RockPaperScissorsScript : MonoBehaviour
 {
-    // Todo, enum from controller input to RPS
+    System.Random _random = new System.Random();
     private int winner, loser;
     private float timerDuration = 10f;
     private bool gameOver;
     private string p1Option, p2Option;
     private float p1Lockout, p2Lockout;
-    private int currentP1Power, currentP2Power, totalP1Health, totalP2Health;
+    private int[] playerHealth = new int[2];
+    private int[] playerPower = new int[2]; 
     private List<(string, string)>[] playerHands = new List<(string, string)>[2];
     private GameObject[] players = new GameObject[2];
     private GameObject[] playerControls = new GameObject[2];
@@ -29,8 +30,8 @@ public class RockPaperScissorsScript : MonoBehaviour
         gameOver = false;
         p1Option = p2Option = "";
         winner = -1;
-        totalP1Health = totalP2Health = 10;
-        currentP1Power = currentP2Power = 0;
+        playerHealth[0] = playerHealth[1] = 10;
+        playerPower[0] = playerPower[1] = 0;
         p1Lockout = p2Lockout = 0f;
         // Grab the text game objects
         timerVisual = GameObject.Find("Timer").GetComponent<TextMeshProUGUI>();
@@ -59,15 +60,15 @@ public class RockPaperScissorsScript : MonoBehaviour
             float milliseconds = (int)(timerDuration * 100f) % 100;
 
             timerVisual.text = string.Format("{0:00}:{1:00}", seconds, milliseconds);
-            currentP1.text = currentP1Power.ToString();
-            currentP2.text = currentP2Power.ToString();
+            currentP1.text = playerPower[0].ToString();
+            currentP2.text = playerPower[1].ToString();
         }
         // End the game loop
         if (timerDuration < 0 && !gameOver)
         {
             gameOver = true;
-            if (totalP1Health > totalP2Health) winner = 0;
-            else if (totalP2Health > totalP1Health) winner = 1;
+            if (playerHealth[0] > playerHealth[1]) winner = 0;
+            else if (playerHealth[1] > playerHealth[0]) winner = 1;
 
             if (winner != -1)
             {
@@ -129,13 +130,17 @@ public class RockPaperScissorsScript : MonoBehaviour
             }
             if (p1Option == "attack")
             {
-                totalP2Health -= currentP1Power;
-                currentP1Power = 0;
+                playerHealth[1] -= playerPower[0];
+                playerPower[0] = 0;
                 playerHands[0].Clear();
+            }
+            if (p1Option == "wildcard")
+            {
+                wildcard(0);
             }
             // Reset the option and lock the player out
             p1Option = "";
-            p1Lockout = 0.25f;
+            p1Lockout = 0.5f;
 
         }
         if (p2Option != "")
@@ -147,13 +152,17 @@ public class RockPaperScissorsScript : MonoBehaviour
             }
             if (p2Option == "attack")
             {
-                totalP1Health -= currentP2Power;
-                currentP2Power = 0;
+                playerHealth[0] -= playerPower[1];
+                playerPower[1] = 0;
                 playerHands[1].Clear();
+            }
+            if (p2Option == "wildcard")
+            {
+                wildcard(1);
             }
             // Reset the option and lock the player out
             p2Option = "";
-            p2Lockout = 0.25f;
+            p2Lockout = 0.5f;
         }
     }
 
@@ -191,14 +200,8 @@ public class RockPaperScissorsScript : MonoBehaviour
                 {
                     p1Option = "attack";
                 }
-                // Make the controls disappear and start run animation
-                // players[0].transform.GetChild(0).gameObject.SetActive(false);
-                // players[0].GetComponent<Animator>().SetBool("Stance", true);
-
-                Debug.Log("P1 has locked: " + p1Option);
             }
         }
-
 
         if (p2Lockout < 0)
         {
@@ -216,11 +219,6 @@ public class RockPaperScissorsScript : MonoBehaviour
                 {
                     p2Option = "attack";
                 }
-                // Make the controls disappear and start run animation
-                // players[1].transform.GetChild(0).gameObject.SetActive(false);
-                // players[1].GetComponent<Animator>().SetBool("Stance", true);
-
-                Debug.Log("P2 has locked: " + p2Option);
             }
         }
     }
@@ -280,18 +278,68 @@ public class RockPaperScissorsScript : MonoBehaviour
         (string, string)[] exportedP1Hand = playerHands[0].ToArray();
         (string, string)[] exportedP2Hand = playerHands[1].ToArray();
 
-        currentP1Power = DECK_FRAMEWORK.evaluateHand(exportedP1Hand);
-        currentP2Power = DECK_FRAMEWORK.evaluateHand(exportedP2Hand);
+        playerPower[0] = DECK_FRAMEWORK.evaluateHand(exportedP1Hand);
+        playerPower[1] = DECK_FRAMEWORK.evaluateHand(exportedP2Hand);
 
-        Debug.Log("P1 Score: " + currentP1Power.ToString());
-        Debug.Log("P2 Score: " + currentP2Power.ToString());
+        Debug.Log("P1 Score: " + playerPower[0].ToString());
+        Debug.Log("P2 Score: " + playerPower[1].ToString());
     }
 
     private void showHealth ()
     {
         SpriteRenderer player1Health = GameObject.Find("Player1Health").GetComponent<SpriteRenderer>();
         SpriteRenderer player2Health = GameObject.Find("Player2Health").GetComponent<SpriteRenderer>();
-        player1Health.sprite = _health["health-bar_" + totalP1Health.ToString()];
-        player2Health.sprite = _health["health-bar_" + totalP2Health.ToString()];
+        player1Health.sprite = _health["health-bar_" + playerHealth[0].ToString()];
+        player2Health.sprite = _health["health-bar_" + playerHealth[1].ToString()];
+    }
+
+    private void wildcard (int player)
+    {
+        int opponent = 1 - player;
+        int dice = _random.Next(1, 7);
+        switch (dice)
+        {
+            case 1:
+                playerHands[player].Clear();
+                break;
+            case 2:
+                if (playerHands[opponent].Count > 0) playerHands[opponent].RemoveAt(0);
+                break;
+            case 3:
+                if (playerHands[player].Count > 0) playerHands[player].RemoveAt(0);
+                break;
+            case 4:
+                if (playerHands[player].Count > 2)
+                {
+                    playerHands[player].RemoveAt(0);
+                    playerHands[player].RemoveAt(0);
+                }
+                else playerHands[player].Clear();
+                break;
+            case 5:
+                if (playerHands[player].Count > 2)
+                {
+                    playerHands[player].RemoveAt(0);
+                    playerHands[player].RemoveAt(0);
+                }
+                else playerHands[player].Clear();
+                playerHands[player].Add(("hearts", "A"));
+                playerHands[player].Add(("spades", "A"));
+                break;
+            case 6: 
+                if (playerHands[player].Count > 3)
+                {
+                    playerHands[player].RemoveAt(0);
+                    playerHands[player].RemoveAt(0);
+                    playerHands[player].RemoveAt(0);
+                }
+                else playerHands[player].Clear();
+
+                playerHands[player].Add(("hearts", "K"));
+                playerHands[player].Add(("clubs", "Q"));
+                playerHands[player].Add(("spades", "J"));
+                break;
+        } 
+
     }
 }
