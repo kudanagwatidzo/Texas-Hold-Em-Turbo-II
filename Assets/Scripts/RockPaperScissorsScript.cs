@@ -14,13 +14,13 @@ public class RockPaperScissorsScript : MonoBehaviour
     private bool gameOver;
     private string p1Option, p2Option;
     private float p1Lockout, p2Lockout;
-    private int currentP1Power, currentP2Power, totalP1Power, totalP2Power;
+    private int currentP1Power, currentP2Power, totalP1Health, totalP2Health;
     private List<(string, string)>[] playerHands = new List<(string, string)>[2];
     private GameObject[] players = new GameObject[2];
     private GameObject[] playerControls = new GameObject[2];
     private DeckScript DECK_FRAMEWORK;
-    private Dictionary<string, Sprite> _cards;
-    public TextMeshProUGUI timerVisual, totalP1, totalP2, currentP1, currentP2;
+    private Dictionary<string, Sprite> _cards, _health;
+    public TextMeshProUGUI timerVisual, currentP1, currentP2;
 
     // Start is called before the first frame update
     void Start()
@@ -29,18 +29,19 @@ public class RockPaperScissorsScript : MonoBehaviour
         gameOver = false;
         p1Option = p2Option = "";
         winner = -1;
-        currentP1Power = currentP2Power = totalP1Power = totalP2Power = 0;
+        totalP1Health = totalP2Health = 10;
+        currentP1Power = currentP2Power = 0;
         p1Lockout = p2Lockout = 0f;
         // Grab the text game objects
         timerVisual = GameObject.Find("Timer").GetComponent<TextMeshProUGUI>();
-        totalP1 = GameObject.Find("Player1Total").GetComponent<TextMeshProUGUI>();
-        totalP2 = GameObject.Find("Player2Total").GetComponent<TextMeshProUGUI>();
         currentP1 = GameObject.Find("Player1Current").GetComponent<TextMeshProUGUI>();
         currentP2 = GameObject.Find("Player2Current").GetComponent<TextMeshProUGUI>();
         // Set up deck framework
         DECK_FRAMEWORK = GameObject.Find("Deck").GetComponent<DeckScript>();
 
         loadCards();
+
+        loadHealth();
 
         players[0] = GameObject.Find("Player1");
         players[1] = GameObject.Find("Player2");
@@ -58,8 +59,6 @@ public class RockPaperScissorsScript : MonoBehaviour
             float milliseconds = (int)(timerDuration * 100f) % 100;
 
             timerVisual.text = string.Format("{0:00}:{1:00}", seconds, milliseconds);
-            totalP1.text = totalP1Power.ToString();
-            totalP2.text = totalP2Power.ToString();
             currentP1.text = currentP1Power.ToString();
             currentP2.text = currentP2Power.ToString();
         }
@@ -67,8 +66,8 @@ public class RockPaperScissorsScript : MonoBehaviour
         if (timerDuration < 0 && !gameOver)
         {
             gameOver = true;
-            if (totalP1Power > totalP2Power) winner = 0;
-            else if (totalP2Power > totalP1Power) winner = 1;
+            if (totalP1Health > totalP2Health) winner = 0;
+            else if (totalP2Health > totalP1Health) winner = 1;
 
             if (winner != -1)
             {
@@ -96,6 +95,8 @@ public class RockPaperScissorsScript : MonoBehaviour
         evaluateHand();
 
         showHand();
+
+        showHealth();
     }
 
     /*
@@ -128,7 +129,7 @@ public class RockPaperScissorsScript : MonoBehaviour
             }
             if (p1Option == "attack")
             {
-                totalP1Power += currentP1Power;
+                totalP2Health -= currentP1Power;
                 currentP1Power = 0;
                 playerHands[0].Clear();
             }
@@ -146,7 +147,7 @@ public class RockPaperScissorsScript : MonoBehaviour
             }
             if (p2Option == "attack")
             {
-                totalP2Power += currentP2Power;
+                totalP1Health -= currentP2Power;
                 currentP2Power = 0;
                 playerHands[1].Clear();
             }
@@ -264,6 +265,16 @@ public class RockPaperScissorsScript : MonoBehaviour
         playerHands[1] = DECK_FRAMEWORK.drawNumber(3);
     }
 
+    private void loadHealth()
+    {
+        Sprite[] SpritesData = Resources.LoadAll<Sprite>("health-bar");
+        _health = new Dictionary<string, Sprite>();
+        for (int i = 0; i < SpritesData.Length; i++)
+        {
+            _health.Add(SpritesData[i].name, SpritesData[i]);
+        }
+    }
+
     private void evaluateHand()
     {
         (string, string)[] exportedP1Hand = playerHands[0].ToArray();
@@ -276,4 +287,11 @@ public class RockPaperScissorsScript : MonoBehaviour
         Debug.Log("P2 Score: " + currentP2Power.ToString());
     }
 
+    private void showHealth ()
+    {
+        SpriteRenderer player1Health = GameObject.Find("Player1Health").GetComponent<SpriteRenderer>();
+        SpriteRenderer player2Health = GameObject.Find("Player2Health").GetComponent<SpriteRenderer>();
+        player1Health.sprite = _health["health-bar_" + totalP1Health.ToString()];
+        player2Health.sprite = _health["health-bar_" + totalP2Health.ToString()];
+    }
 }

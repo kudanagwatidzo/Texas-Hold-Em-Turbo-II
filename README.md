@@ -11,3 +11,5 @@ Used Assets
 - Free Pixel Art Forest: https://edermunizz.itch.io/free-pixel-art-forest
 - Gamepad UI/Controller Prompts Pack: https://greatdocbrown.itch.io/gamepad-ui 
 - Base Pixel Playing Card Set: https://unbent.itch.io/yewbi-playing-card-set-1
+- UI Bars: https://guilemus.itch.io/ui-bars
+- Dungeon Font: https://vrtxrry.itch.io/dungeonfont
