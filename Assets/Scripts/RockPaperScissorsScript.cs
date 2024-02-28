@@ -14,11 +14,13 @@ public class RockPaperScissorsScript : MonoBehaviour
     private bool gameOver;
     private string p1Option, p2Option;
     private float p1Lockout, p2Lockout;
+
     private int[] playerHealth = new int[2];
-    private int[] playerPower = new int[2]; 
+    private int[] playerPower = new int[2];
+    private float[,] playerLockouts = new float[2, 3];
+    private Animator[,] playerControls = new Animator[2, 3];
     private List<(string, string)>[] playerHands = new List<(string, string)>[2];
     private GameObject[] players = new GameObject[2];
-    private GameObject[] playerControls = new GameObject[2];
     private DeckScript DECK_FRAMEWORK;
     private Dictionary<string, Sprite> _cards, _health;
     public TextMeshProUGUI timerVisual, currentP1, currentP2;
@@ -39,6 +41,8 @@ public class RockPaperScissorsScript : MonoBehaviour
         currentP2 = GameObject.Find("Player2Current").GetComponent<TextMeshProUGUI>();
         // Set up deck framework
         DECK_FRAMEWORK = GameObject.Find("Deck").GetComponent<DeckScript>();
+
+        loadControls();
 
         loadCards();
 
@@ -89,6 +93,8 @@ public class RockPaperScissorsScript : MonoBehaviour
 
         }
 
+        updateLockouts();
+
         readInputs();
 
         checkOptions();
@@ -125,8 +131,7 @@ public class RockPaperScissorsScript : MonoBehaviour
         {
             if (p1Option == "draw")
             {
-                playerHands[0].Add(DECK_FRAMEWORK.draw());
-                if (playerHands[0].Count > 5) playerHands[0].RemoveAt(0);
+                draw(0);
             }
             if (p1Option == "attack")
             {
@@ -140,7 +145,7 @@ public class RockPaperScissorsScript : MonoBehaviour
             }
             // Reset the option and lock the player out
             p1Option = "";
-            p1Lockout = 0.5f;
+            p1Lockout = 0.3f;
 
         }
         if (p2Option != "")
@@ -162,7 +167,7 @@ public class RockPaperScissorsScript : MonoBehaviour
             }
             // Reset the option and lock the player out
             p2Option = "";
-            p2Lockout = 0.5f;
+            p2Lockout = 0.3f;
         }
     }
 
@@ -184,22 +189,19 @@ public class RockPaperScissorsScript : MonoBehaviour
         float p1Vertical = Input.GetAxis("Player1Vertical");
         float p2Vertical = Input.GetAxis("Player2Vertical");
 
-        if (p1Lockout < 0)
+        if (Math.Abs(p1Horizontal) > 0.6 || p1Vertical > 0.6)
         {
-            if (Math.Abs(p1Horizontal) > 0.6 || p1Vertical > 0.6)
+            if (p1Horizontal > 0.6 && playerLockouts[0, 0] < 0)
             {
-                if (p1Horizontal > 0.6)
-                {
-                    p1Option = "draw";
-                }
-                else if (p1Horizontal < -0.6)
-                {
-                    p1Option = "wildcard";
-                }
-                else if (p1Vertical > 0.6)
-                {
-                    p1Option = "attack";
-                }
+                p1Option = "draw";
+            }
+            else if (p1Horizontal < -0.6)
+            {
+                p1Option = "wildcard";
+            }
+            else if (p1Vertical > 0.6)
+            {
+                p1Option = "attack";
             }
         }
 
@@ -273,6 +275,16 @@ public class RockPaperScissorsScript : MonoBehaviour
         }
     }
 
+    private void loadControls()
+    {
+        playerControls[0, 0] = GameObject.Find("Player1Controls").transform.GetChild(0).GetChild(0).GetComponent<Animator>();
+        playerControls[0, 1] = GameObject.Find("Player1Controls").transform.GetChild(1).GetChild(0).GetComponent<Animator>();
+        playerControls[0, 2] = GameObject.Find("Player1Controls").transform.GetChild(2).GetChild(0).GetComponent<Animator>();
+        playerControls[1, 0] = GameObject.Find("Player2Controls").transform.GetChild(0).GetChild(0).GetComponent<Animator>();
+        playerControls[1, 1] = GameObject.Find("Player2Controls").transform.GetChild(1).GetChild(0).GetComponent<Animator>();
+        playerControls[1, 2] = GameObject.Find("Player2Controls").transform.GetChild(2).GetChild(0).GetComponent<Animator>();
+    }
+
     private void evaluateHand()
     {
         (string, string)[] exportedP1Hand = playerHands[0].ToArray();
@@ -285,25 +297,55 @@ public class RockPaperScissorsScript : MonoBehaviour
         Debug.Log("P2 Score: " + playerPower[1].ToString());
     }
 
-    private void showHealth ()
+    private void showHealth()
     {
         SpriteRenderer player1Health = GameObject.Find("Player1Health").GetComponent<SpriteRenderer>();
         SpriteRenderer player2Health = GameObject.Find("Player2Health").GetComponent<SpriteRenderer>();
-        player1Health.sprite = _health["health-bar_" + playerHealth[0].ToString()];
-        player2Health.sprite = _health["health-bar_" + playerHealth[1].ToString()];
+
+        if (playerHealth[0] < 0) player1Health.sprite = _health["health-bar_0"];
+        else player1Health.sprite = _health["health-bar_" + playerHealth[0].ToString()];
+
+        if (playerHealth[1] < 0) player2Health.sprite = _health["health-bar_0"];
+        else player2Health.sprite = _health["health-bar_" + playerHealth[1].ToString()];
     }
 
-    private void wildcard (int player)
+    private void updateLockouts()
+    {
+        // Update the lockout timers for players, update corresponding visuals
+        for (int i = 0; i < 2; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                playerLockouts[i, j] -= Time.deltaTime;
+                playerControls[i, j].SetFloat("lockout", playerLockouts[i, j]);
+            }
+        }
+    }
+
+    private void draw(int player)
+    {
+        // Draw 1 card and discard until 5 or less
+        playerHands[player].Add(DECK_FRAMEWORK.draw());
+        for (int i = 0; i < playerHands[player].Count - 5; i++)
+        {
+            playerHands[player].RemoveAt(0);
+        }
+        // Update animation for draw button
+        playerControls[player, 0].SetTrigger("press");
+        playerLockouts[player, 0] = 0.3f;
+    }
+
+    private void wildcard(int player)
     {
         int opponent = 1 - player;
-        int dice = _random.Next(1, 7);
+        int dice = _random.Next(1, 10);
         switch (dice)
         {
             case 1:
                 playerHands[player].Clear();
                 break;
             case 2:
-                if (playerHands[opponent].Count > 0) playerHands[opponent].RemoveAt(0);
+                if (playerHands[opponent].Count > 0) playerHands[opponent].Clear();
                 break;
             case 3:
                 if (playerHands[player].Count > 0) playerHands[player].RemoveAt(0);
@@ -326,7 +368,7 @@ public class RockPaperScissorsScript : MonoBehaviour
                 playerHands[player].Add(("hearts", "A"));
                 playerHands[player].Add(("spades", "A"));
                 break;
-            case 6: 
+            case 6:
                 if (playerHands[player].Count > 3)
                 {
                     playerHands[player].RemoveAt(0);
@@ -339,7 +381,46 @@ public class RockPaperScissorsScript : MonoBehaviour
                 playerHands[player].Add(("clubs", "Q"));
                 playerHands[player].Add(("spades", "J"));
                 break;
-        } 
+            case 7:
+                if (playerHands[player].Count > 3)
+                {
+                    playerHands[player].RemoveAt(0);
+                    playerHands[player].RemoveAt(0);
+                    playerHands[player].RemoveAt(0);
+                }
+                else playerHands[player].Clear();
+
+                playerHands[player].Add(("hearts", "Q"));
+                playerHands[player].Add(("clubs", "Q"));
+                playerHands[player].Add(("spades", "Q"));
+                break;
+            case 8:
+                if (playerHands[player].Count > 4)
+                {
+                    playerHands[player].RemoveAt(0);
+                    playerHands[player].RemoveAt(0);
+                    playerHands[player].RemoveAt(0);
+                    playerHands[player].RemoveAt(0);
+                }
+                else playerHands[player].Clear();
+
+                playerHands[player].Add(("hearts", "J"));
+                playerHands[player].Add(("clubs", "J"));
+                playerHands[player].Add(("spades", "J"));
+                playerHands[player].Add(("diamonds", "J"));
+                break;
+            case 9:
+                playerHands[player].Clear();
+
+                playerHands[player].Add(("hearts", "A"));
+                playerHands[player].Add(("hearts", "K"));
+                playerHands[player].Add(("hearts", "Q"));
+                playerHands[player].Add(("hearts", "J"));
+                playerHands[player].Add(("hearts", "10"));
+
+                Debug.Log(DECK_FRAMEWORK.evaluateHand(playerHands[player].ToArray()).ToString());
+                break;
+        }
 
     }
 }

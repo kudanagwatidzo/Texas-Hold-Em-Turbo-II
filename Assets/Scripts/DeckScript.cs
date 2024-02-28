@@ -9,7 +9,7 @@ public class DeckScript : MonoBehaviour
     System.Random _random = new System.Random();
 
     private string[] _suits = new string[] { "spades", "diamonds", "clubs", "hearts" };
-    private string[] _values = new string[] { "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K" };
+    private string[] _values = new string[] { "A", "A", "10", "10", "10", "J", "J", "J", "Q", "Q", "Q", "K", "K" };
     private (string, string)[] _shuffled = new (string, string)[52];
     private Queue<(string, string)> _deck = new Queue<(string, string)>();
 
@@ -47,7 +47,7 @@ public class DeckScript : MonoBehaviour
         return _drawn;
     }
 
-    public (string, string)[] sortHand ((string, string)[] cards)
+    public (string, string)[] sortHand((string, string)[] cards)
     {
         cards = _sortBySuit(cards);
         List<(string, int)> rankedCards = _sortByRank(cards);
@@ -158,11 +158,11 @@ public class DeckScript : MonoBehaviour
                     break;
             }
         }
-        rankedCards.Sort((x, y) => y.Item2.CompareTo(x.Item2));
+        rankedCards.Sort((x, y) => x.Item2.CompareTo(y.Item2));
         return rankedCards;
     }
 
-    private (string, string)[] _sortBySuit ((string, string)[] cards)
+    private (string, string)[] _sortBySuit((string, string)[] cards)
     {
         (string, string)[] copy = cards;
         Array.Sort(copy, (x, y) => y.Item1.CompareTo(x.Item1));
@@ -172,7 +172,7 @@ public class DeckScript : MonoBehaviour
     {
         if (cards.Length != 5) return false;
         cards = _sortBySuit(cards);
-        return (cards[0].Item1 == cards[4].Item2);
+        return (cards[0].Item1 == cards[4].Item1);
     }
 
     private bool _isStraight((string, string)[] cards)
@@ -351,7 +351,7 @@ public class DeckScript : MonoBehaviour
        -------------------------------- */
         bool a4 = rankedCards[3].Item2 == rankedCards[4].Item2;
 
-        bool[] conditions = new bool[] {a1, a2, a3, a4};
+        bool[] conditions = new bool[] { a1, a2, a3, a4 };
 
         return (a1 || a2 || a3 || a4);
     }

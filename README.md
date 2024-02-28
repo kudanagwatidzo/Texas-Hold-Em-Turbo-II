@@ -1,7 +1,7 @@
 # Throws-and-Mids
 Inspired by footsies and remembering that fighting games outside of footsies are really rps
 
-Poker Evaluation Algorithms: Emory University (Methods used to check for Poker Hands)
+Poker Evaluation Algorithms: Emory University (Methods used to check for Poker Hands): https://www.cs.emory.edu/~cheung/Courses/170/Syllabus/10/pokerCheck.html
 
 Used Assets
 - Abaddon Font: https://caffinate.itch.io/abaddon
