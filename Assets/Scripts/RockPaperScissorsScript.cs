@@ -34,7 +34,6 @@ public class RockPaperScissorsScript : MonoBehaviour
         winner = -1;
         playerHealth[0] = playerHealth[1] = 10;
         playerPower[0] = playerPower[1] = 0;
-        p1Lockout = p2Lockout = 0f;
         // Grab the text game objects
         timerVisual = GameObject.Find("Timer").GetComponent<TextMeshProUGUI>();
         currentP1 = GameObject.Find("Player1Current").GetComponent<TextMeshProUGUI>();
@@ -58,17 +57,27 @@ public class RockPaperScissorsScript : MonoBehaviour
         if (!gameOver)
         {
             timerDuration -= Time.deltaTime;
-            p1Lockout -= Time.deltaTime;
-            p2Lockout -= Time.deltaTime;
             float seconds = Mathf.FloorToInt(timerDuration % 60);
             float milliseconds = (int)(timerDuration * 100f) % 100;
 
             timerVisual.text = string.Format("{0:00}:{1:00}", seconds, milliseconds);
             currentP1.text = playerPower[0].ToString();
             currentP2.text = playerPower[1].ToString();
+
+            updateLockouts();
+
+            readInputs();
+
+            checkInputs();
+
+            evaluateHand();
+
+            showHand();
+
+            showHealth();
         }
         // End the game loop
-        if (timerDuration < 0 && !gameOver)
+        if ((timerDuration < 0 || playerHealth[0] <= 0 || playerHealth[1] <= 0) && !gameOver)
         {
             gameOver = true;
             if (playerHealth[0] > playerHealth[1]) winner = 0;
@@ -80,8 +89,8 @@ public class RockPaperScissorsScript : MonoBehaviour
                 players[0].transform.GetChild(0).gameObject.SetActive(false);
                 players[1].transform.GetChild(0).gameObject.SetActive(false);
 
-                players[winner].GetComponent<Animator>().SetTrigger("Attack");
-                players[loser].GetComponent<Animator>().SetTrigger("OnDeath");
+                players[winner].transform.Find("PlayerSprite").GetComponent<Animator>().SetTrigger("Attack");
+                players[loser].transform.Find("PlayerSprite").GetComponent<Animator>().SetTrigger("OnDeath");
 
                 timerVisual.text = "Player " + (winner + 1).ToString() + " Wins!";
             }
@@ -92,40 +101,13 @@ public class RockPaperScissorsScript : MonoBehaviour
 
 
         }
-
-        updateLockouts();
-
-        readInputs();
-
-        checkOptions();
-
-        evaluateHand();
-
-        showHand();
-
-        showHealth();
+        else 
+        {
+            
+        }
     }
 
-    /*
-    private int playRockPaperScissors()
-    {
-        Debug.Log("Starting RPS");
-        // If two players tie, reset the RPS situation
-        if (string.Equals(p1Option, p2Option))
-        {
-            resetRPS();
-            return 0;
-        }
-        else
-        {
-            rpsCompleted = true;
-            return checkOptions();
-        }
-
-    }
-    */
-
-    private void checkOptions()
+    private void checkInputs()
     {
         if (p1Option != "")
         {
@@ -135,31 +117,25 @@ public class RockPaperScissorsScript : MonoBehaviour
             }
             if (p1Option == "attack")
             {
-                playerHealth[1] -= playerPower[0];
-                playerPower[0] = 0;
-                playerHands[0].Clear();
+                attack(0);
             }
             if (p1Option == "wildcard")
             {
                 wildcard(0);
             }
-            // Reset the option and lock the player out
+            // Reset the option
             p1Option = "";
-            p1Lockout = 0.3f;
 
         }
         if (p2Option != "")
         {
             if (p2Option == "draw")
             {
-                playerHands[1].Add(DECK_FRAMEWORK.draw());
-                if (playerHands[1].Count > 5) playerHands[1].RemoveAt(0);
+                draw(1);
             }
             if (p2Option == "attack")
             {
-                playerHealth[0] -= playerPower[1];
-                playerPower[1] = 0;
-                playerHands[1].Clear();
+                attack(1);
             }
             if (p2Option == "wildcard")
             {
@@ -167,7 +143,6 @@ public class RockPaperScissorsScript : MonoBehaviour
             }
             // Reset the option and lock the player out
             p2Option = "";
-            p2Lockout = 0.3f;
         }
     }
 
@@ -195,33 +170,31 @@ public class RockPaperScissorsScript : MonoBehaviour
             {
                 p1Option = "draw";
             }
-            else if (p1Horizontal < -0.6)
-            {
-                p1Option = "wildcard";
-            }
-            else if (p1Vertical > 0.6)
+            else if (p1Vertical > 0.6 && playerControls[0, 1].GetBool("canAttack"))
             {
                 p1Option = "attack";
             }
+            else if (p1Horizontal < -0.6 && playerLockouts[0, 2] < 0)
+            {
+                p1Option = "wildcard";
+            }
         }
 
-        if (p2Lockout < 0)
+        if (Math.Abs(p2Horizontal) > 0.6 || p2Vertical > 0.6)
         {
-            if (Math.Abs(p2Horizontal) > 0.6 || p2Vertical > 0.6)
+            if (p2Horizontal > 0.6 && playerLockouts[1, 0] < 0)
             {
-                if (p2Horizontal > 0.6)
-                {
-                    p2Option = "draw";
-                }
-                else if (p2Horizontal < -0.6)
-                {
-                    p2Option = "wildcard";
-                }
-                else if (p2Vertical > 0.6)
-                {
-                    p2Option = "attack";
-                }
+                p2Option = "draw";
             }
+            else if (p2Vertical > 0.6 && playerControls[1, 1].GetBool("canAttack"))
+            {
+                p2Option = "attack";
+            }
+            else if (p2Horizontal < -0.6 && playerLockouts[1, 2] < 0)
+            {
+                p2Option = "wildcard";
+            }
+
         }
     }
 
@@ -293,8 +266,11 @@ public class RockPaperScissorsScript : MonoBehaviour
         playerPower[0] = DECK_FRAMEWORK.evaluateHand(exportedP1Hand);
         playerPower[1] = DECK_FRAMEWORK.evaluateHand(exportedP2Hand);
 
-        Debug.Log("P1 Score: " + playerPower[0].ToString());
-        Debug.Log("P2 Score: " + playerPower[1].ToString());
+        if (playerPower[0] > 0) playerControls[0, 1].SetBool("canAttack", true);
+        else playerControls[0, 1].SetBool("canAttack", false);
+
+        if (playerPower[1] > 0) playerControls[1, 1].SetBool("canAttack", true);
+        else playerControls[1, 1].SetBool("canAttack", false);
     }
 
     private void showHealth()
@@ -331,8 +307,16 @@ public class RockPaperScissorsScript : MonoBehaviour
             playerHands[player].RemoveAt(0);
         }
         // Update animation for draw button
-        playerControls[player, 0].SetTrigger("press");
         playerLockouts[player, 0] = 0.3f;
+    }
+
+    private void attack(int attacker)
+    {
+        int defender = 1 - attacker;
+        playerHealth[defender] -= playerPower[attacker];
+        playerPower[attacker] = 0;
+        playerHands[attacker].Clear();
+        players[attacker].transform.Find("PlayerSprite").GetComponent<Animator>().SetTrigger("Attack");
     }
 
     private void wildcard(int player)
@@ -421,6 +405,6 @@ public class RockPaperScissorsScript : MonoBehaviour
                 Debug.Log(DECK_FRAMEWORK.evaluateHand(playerHands[player].ToArray()).ToString());
                 break;
         }
-
+        playerLockouts[player, 2] = 4f;
     }
 }
