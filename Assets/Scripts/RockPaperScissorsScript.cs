@@ -88,6 +88,7 @@ public class RockPaperScissorsScript : MonoBehaviour
                 loser = 1 - winner;
                 players[0].transform.GetChild(0).gameObject.SetActive(false);
                 players[1].transform.GetChild(0).gameObject.SetActive(false);
+                GameObject.Find("Descriptions").SetActive(false);
 
                 players[winner].transform.Find("PlayerSprite").GetComponent<Animator>().SetTrigger("Attack");
                 players[loser].transform.Find("PlayerSprite").GetComponent<Animator>().SetTrigger("OnDeath");
