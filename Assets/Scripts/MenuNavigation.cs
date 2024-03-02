@@ -12,25 +12,34 @@ public class MenuNavigation : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        screenAnimator = GameObject.Find("Background").GetComponent<Animator>();
-        splashObj = GameObject.Find("SplashCanvas");
-        creditsObj = GameObject.Find("CreditsCanvas");
-        characterSelectObj = GameObject.Find("CharacterSelectCanvas");
-        fightObj = GameObject.Find("FightCanvas");
-        characterSelectObj.transform.GetChild(0).gameObject.SetActive(false);
-        creditsObj.transform.GetChild(0).gameObject.SetActive(false);
-        fightObj.transform.GetChild(0).gameObject.SetActive(false);
+        string currentSceneName = SceneManager.GetActiveScene().name;
+        if (currentSceneName == "SplashScene")
+        {
+            screenAnimator = GameObject.Find("Background").GetComponent<Animator>();
+            splashObj = GameObject.Find("SplashCanvas");
+            creditsObj = GameObject.Find("CreditsCanvas");
+            characterSelectObj = GameObject.Find("CharacterSelectCanvas");
+            fightObj = GameObject.Find("FightCanvas");
+            characterSelectObj.transform.GetChild(0).gameObject.SetActive(false);
+            creditsObj.transform.GetChild(0).gameObject.SetActive(false);
+            fightObj.transform.GetChild(0).gameObject.SetActive(false);
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 
     public void startGame()
     {
         SceneManager.LoadScene("MainScene");
+    }
+
+    public void mainMenu()
+    {
+        SceneManager.LoadScene("SplashScene");
     }
 
     public void characterSelect()
@@ -53,7 +62,7 @@ public class MenuNavigation : MonoBehaviour
         characterSelectObj.transform.GetChild(0).gameObject.SetActive(false);
         splashObj.transform.GetChild(0).gameObject.SetActive(true);
     }
-    public void fight ()
+    public void fight()
     {
         screenAnimator.SetTrigger("fight");
         creditsObj.transform.GetChild(0).gameObject.SetActive(false);

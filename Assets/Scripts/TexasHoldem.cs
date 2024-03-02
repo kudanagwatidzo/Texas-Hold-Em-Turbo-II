@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System;
 using UnityEngine;
 using UnityEditor;
@@ -10,51 +11,46 @@ public class RockPaperScissorsScript : MonoBehaviour
 {
     System.Random _random = new System.Random();
     private int winner, loser;
-    private float timerDuration = 10f;
-    private bool gameOver;
-    private string p1Option, p2Option;
+    private float timerDuration;
     private float p1Lockout, p2Lockout;
+    private bool roundOver, gameOver;
+    private string p1Option, p2Option;
 
     private int[] playerHealth = new int[2];
     private int[] playerPower = new int[2];
     private float[,] playerLockouts = new float[2, 3];
     private Animator[,] playerControls = new Animator[2, 3];
+    public List<int> rounds = new List<int>();
     private List<(string, string)>[] playerHands = new List<(string, string)>[2];
     private GameObject[] players = new GameObject[2];
     private DeckScript DECK_FRAMEWORK;
     private Dictionary<string, Sprite> _cards, _health;
-    public TextMeshProUGUI timerVisual, currentP1, currentP2;
+    private TextMeshProUGUI timerVisual, currentP1, currentP2;
+    private GameObject textDescription, menu;
 
     // Start is called before the first frame update
     void Start()
     {
-        // Reset game
         gameOver = false;
-        p1Option = p2Option = "";
-        winner = -1;
-        playerHealth[0] = playerHealth[1] = 10;
-        playerPower[0] = playerPower[1] = 0;
-        // Grab the text game objects
+        roundOver = false;
+        // Grab the necessary game objects on screen
         timerVisual = GameObject.Find("Timer").GetComponent<TextMeshProUGUI>();
         currentP1 = GameObject.Find("Player1Current").GetComponent<TextMeshProUGUI>();
         currentP2 = GameObject.Find("Player2Current").GetComponent<TextMeshProUGUI>();
-        // Set up deck framework
-        DECK_FRAMEWORK = GameObject.Find("Deck").GetComponent<DeckScript>();
-
-        loadControls();
-
-        loadCards();
-
-        loadHealth();
-
         players[0] = GameObject.Find("Player1");
         players[1] = GameObject.Find("Player2");
+        textDescription = GameObject.Find("Descriptions");
+        menu = GameObject.Find("Menus");
+        // Set up deck framework
+        DECK_FRAMEWORK = GameObject.Find("Deck").GetComponent<DeckScript>();
+        // Start playthrough
+        resetGame();
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (!gameOver)
+        if (!roundOver)
         {
             timerDuration -= Time.deltaTime;
             float seconds = Mathf.FloorToInt(timerDuration % 60);
@@ -77,35 +73,118 @@ public class RockPaperScissorsScript : MonoBehaviour
             showHealth();
         }
         // End the game loop
-        if ((timerDuration < 0 || playerHealth[0] <= 0 || playerHealth[1] <= 0) && !gameOver)
+        if ((timerDuration < 0 || playerHealth[0] <= 0 || playerHealth[1] <= 0) && !roundOver)
         {
-            gameOver = true;
-            if (playerHealth[0] > playerHealth[1]) winner = 0;
-            else if (playerHealth[1] > playerHealth[0]) winner = 1;
-
+            roundOver = true;
+            if (playerHealth[0] > playerHealth[1]) 
+            {
+                winner = 0;
+                rounds.Add(-1);
+            }
+            else if (playerHealth[1] > playerHealth[0]) 
+            {
+                winner = 1;
+                rounds.Add(1);
+            }
+            else 
+            {
+                winner = -1;
+                rounds.Add(0);
+            }
+            // Display winner of the round
             if (winner != -1)
             {
                 loser = 1 - winner;
                 players[0].transform.GetChild(0).gameObject.SetActive(false);
                 players[1].transform.GetChild(0).gameObject.SetActive(false);
-                GameObject.Find("Descriptions").SetActive(false);
-
+                textDescription.SetActive(false);
                 players[winner].transform.Find("PlayerSprite").GetComponent<Animator>().SetTrigger("Attack");
                 players[loser].transform.Find("PlayerSprite").GetComponent<Animator>().SetTrigger("OnDeath");
 
-                timerVisual.text = "Player " + (winner + 1).ToString() + " Wins!";
+                timerVisual.text = "Player " + (winner + 1).ToString() + " Wins Round " + rounds.Count.ToString() + "!";
             }
             else
             {
-                timerVisual.text = "TIED!";
+                timerVisual.text = "Round " + rounds.Count.ToString() + " is Tied!";
             }
-
-
+            // Check if best of 3 is completed
+            if (rounds.Count > 1 && rounds.AsQueryable().Sum() != 0)
+            {
+                menu.SetActive(true);
+            }
+            else
+            {
+                Invoke("resetGame", 5.0f);
+            }
         }
-        else 
+    }
+
+    private void resetGame ()
+    {
+
+        timerDuration = 10f;
+
+        p1Option = p2Option = "";
+        winner = -1;
+        playerHealth[0] = playerHealth[1] = 10;
+        playerPower[0] = playerPower[1] = 0;
+
+        players[0].transform.GetChild(0).gameObject.SetActive(true);
+        players[1].transform.GetChild(0).gameObject.SetActive(true);
+
+        textDescription.SetActive(true);
+        menu.SetActive(false);
+
+        loadControls();
+
+        loadCards();
+
+        loadHealth();
+
+        roundOver = false;
+
+        players[0].transform.Find("PlayerSprite").GetComponent<Animator>().Rebind();
+        players[0].transform.Find("PlayerSprite").GetComponent<Animator>().Update(0f);
+
+        players[1].transform.Find("PlayerSprite").GetComponent<Animator>().Rebind();
+        players[1].transform.Find("PlayerSprite").GetComponent<Animator>().Update(0f);
+        // players[0].transform.Find("PlayerSprite").GetComponent<Animator>().SetTrigger("Reset");
+        // players[1].transform.Find("PlayerSprite").GetComponent<Animator>().SetTrigger("Reset");
+    }
+
+    private void loadCards()
+    {
+        Sprite[] SpritesData = Resources.LoadAll<Sprite>("Cards");
+        _cards = new Dictionary<string, Sprite>();
+        for (int i = 0; i < SpritesData.Length; i++)
         {
-            
+            _cards.Add(SpritesData[i].name, SpritesData[i]);
         }
+
+        DECK_FRAMEWORK.createDeck();
+
+        playerHands[0] = DECK_FRAMEWORK.drawNumber(3);
+        playerHands[1] = DECK_FRAMEWORK.drawNumber(3);
+    }
+
+    private void loadHealth()
+    {
+        Sprite[] SpritesData = Resources.LoadAll<Sprite>("health-bar");
+        _health = new Dictionary<string, Sprite>();
+        for (int i = 0; i < SpritesData.Length; i++)
+        {
+            _health.Add(SpritesData[i].name, SpritesData[i]);
+        }
+    }
+
+    private void loadControls()
+    {
+        playerControls[0, 0] = GameObject.Find("Player1Controls").transform.GetChild(0).GetChild(0).GetComponent<Animator>();
+        playerControls[0, 1] = GameObject.Find("Player1Controls").transform.GetChild(1).GetChild(0).GetComponent<Animator>();
+        playerControls[0, 2] = GameObject.Find("Player1Controls").transform.GetChild(2).GetChild(0).GetComponent<Animator>();
+        playerControls[1, 0] = GameObject.Find("Player2Controls").transform.GetChild(0).GetChild(0).GetComponent<Animator>();
+        playerControls[1, 1] = GameObject.Find("Player2Controls").transform.GetChild(1).GetChild(0).GetComponent<Animator>();
+        playerControls[1, 2] = GameObject.Find("Player2Controls").transform.GetChild(2).GetChild(0).GetComponent<Animator>();
     }
 
     private void checkInputs()
@@ -145,17 +224,6 @@ public class RockPaperScissorsScript : MonoBehaviour
             // Reset the option and lock the player out
             p2Option = "";
         }
-    }
-
-    private void resetGame()
-    {
-        timerDuration = 5.5f;
-        p1Option = "";
-        p2Option = "";
-        players[0].transform.GetChild(0).gameObject.SetActive(true);
-        players[1].transform.GetChild(0).gameObject.SetActive(true);
-        players[0].GetComponent<Animator>().SetBool("Stance", false);
-        players[1].GetComponent<Animator>().SetBool("Stance", false);
     }
 
     private void readInputs()
@@ -225,38 +293,6 @@ public class RockPaperScissorsScript : MonoBehaviour
             SpriteRenderer currentCardRenderer = GameObject.Find("Player2Hand").transform.GetChild(j).gameObject.GetComponent<SpriteRenderer>();
             currentCardRenderer.sprite = _cards["blank"];
         }
-    }
-
-    private void loadCards()
-    {
-        Sprite[] SpritesData = Resources.LoadAll<Sprite>("Cards");
-        _cards = new Dictionary<string, Sprite>();
-        for (int i = 0; i < SpritesData.Length; i++)
-        {
-            _cards.Add(SpritesData[i].name, SpritesData[i]);
-        }
-        playerHands[0] = DECK_FRAMEWORK.drawNumber(3);
-        playerHands[1] = DECK_FRAMEWORK.drawNumber(3);
-    }
-
-    private void loadHealth()
-    {
-        Sprite[] SpritesData = Resources.LoadAll<Sprite>("health-bar");
-        _health = new Dictionary<string, Sprite>();
-        for (int i = 0; i < SpritesData.Length; i++)
-        {
-            _health.Add(SpritesData[i].name, SpritesData[i]);
-        }
-    }
-
-    private void loadControls()
-    {
-        playerControls[0, 0] = GameObject.Find("Player1Controls").transform.GetChild(0).GetChild(0).GetComponent<Animator>();
-        playerControls[0, 1] = GameObject.Find("Player1Controls").transform.GetChild(1).GetChild(0).GetComponent<Animator>();
-        playerControls[0, 2] = GameObject.Find("Player1Controls").transform.GetChild(2).GetChild(0).GetComponent<Animator>();
-        playerControls[1, 0] = GameObject.Find("Player2Controls").transform.GetChild(0).GetChild(0).GetComponent<Animator>();
-        playerControls[1, 1] = GameObject.Find("Player2Controls").transform.GetChild(1).GetChild(0).GetComponent<Animator>();
-        playerControls[1, 2] = GameObject.Find("Player2Controls").transform.GetChild(2).GetChild(0).GetComponent<Animator>();
     }
 
     private void evaluateHand()

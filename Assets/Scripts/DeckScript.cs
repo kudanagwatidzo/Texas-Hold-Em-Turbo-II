@@ -10,13 +10,13 @@ public class DeckScript : MonoBehaviour
 
     private string[] _suits = new string[] { "spades", "diamonds", "clubs", "hearts" };
     private string[] _values = new string[] { "A", "A", "10", "10", "10", "J", "J", "J", "Q", "Q", "Q", "K", "K" };
-    private (string, string)[] _shuffled = new (string, string)[52];
+    private (string, string)[] _shuffled;
     private Queue<(string, string)> _deck = new Queue<(string, string)>();
 
     // Start is called before the first frame update
     void Start()
     {
-        _createDeck();
+        
     }
 
     // Update is called once per frame
@@ -106,8 +106,9 @@ public class DeckScript : MonoBehaviour
             return 0;
     }
 
-    private void _createDeck()
+    public void createDeck()
     {
+        _shuffled = new (string, string)[52];
         int count = 0;
         // Initialize the deck
         for (int i = 0; i < _suits.Length; i++)
