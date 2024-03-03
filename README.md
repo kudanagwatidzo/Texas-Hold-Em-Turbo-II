@@ -15,3 +15,10 @@ Used Assets
 - Base Pixel Playing Card Set: https://unbent.itch.io/yewbi-playing-card-set-1
 - UI Bars: https://guilemus.itch.io/ui-bars
 - Dungeon Font: https://vrtxrry.itch.io/dungeonfont
+- 16x16 RPG Item Pack: https://alexs-assets.itch.io/16x16-rpg-item-pack
+- Pixel Health Bar and Scroll Bar: https://bdragon1727.itch.io/basic-pixel-health-bar-and-scroll-bar
+
+Check out BFXR
+- Sound feedback, sound potentially overlaying
+- PlayerPerf to store character select information
+- Audio avaiability in discord

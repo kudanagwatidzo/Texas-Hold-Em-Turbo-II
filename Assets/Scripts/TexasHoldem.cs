@@ -12,10 +12,8 @@ public class RockPaperScissorsScript : MonoBehaviour
     System.Random _random = new System.Random();
     private int winner, loser;
     private float timerDuration;
-    private float p1Lockout, p2Lockout;
-    private bool roundOver, gameOver;
+    private bool roundOver;
     private string p1Option, p2Option;
-
     private int[] playerHealth = new int[2];
     private int[] playerPower = new int[2];
     private float[,] playerLockouts = new float[2, 3];
@@ -25,13 +23,13 @@ public class RockPaperScissorsScript : MonoBehaviour
     private GameObject[] players = new GameObject[2];
     private DeckScript DECK_FRAMEWORK;
     private Dictionary<string, Sprite> _cards, _health;
+    public Sprite[] wildcardSprites = new Sprite[3];
     private TextMeshProUGUI timerVisual, currentP1, currentP2;
     private GameObject textDescription, menu;
 
     // Start is called before the first frame update
     void Start()
     {
-        gameOver = false;
         roundOver = false;
         // Grab the necessary game objects on screen
         timerVisual = GameObject.Find("Timer").GetComponent<TextMeshProUGUI>();
@@ -41,6 +39,9 @@ public class RockPaperScissorsScript : MonoBehaviour
         players[1] = GameObject.Find("Player2");
         textDescription = GameObject.Find("Descriptions");
         menu = GameObject.Find("Menus");
+        // Get wildcard graphics from character select ready
+        GameObject.Find("P1WildcardSprite").GetComponent<SpriteRenderer>().sprite = wildcardSprites[PlayerPrefs.GetInt("Player1Wildcard", -1)];
+        GameObject.Find("P2WildcardSprite").GetComponent<SpriteRenderer>().sprite = wildcardSprites[PlayerPrefs.GetInt("Player2Wildcard", -1)];
         // Set up deck framework
         DECK_FRAMEWORK = GameObject.Find("Deck").GetComponent<DeckScript>();
         // Start playthrough
@@ -76,20 +77,19 @@ public class RockPaperScissorsScript : MonoBehaviour
         if ((timerDuration < 0 || playerHealth[0] <= 0 || playerHealth[1] <= 0) && !roundOver)
         {
             roundOver = true;
-            if (playerHealth[0] > playerHealth[1]) 
+            if (playerHealth[0] > playerHealth[1])
             {
                 winner = 0;
                 rounds.Add(-1);
             }
-            else if (playerHealth[1] > playerHealth[0]) 
+            else if (playerHealth[1] > playerHealth[0])
             {
                 winner = 1;
                 rounds.Add(1);
             }
-            else 
+            else
             {
                 winner = -1;
-                rounds.Add(0);
             }
             // Display winner of the round
             if (winner != -1)
@@ -119,7 +119,7 @@ public class RockPaperScissorsScript : MonoBehaviour
         }
     }
 
-    private void resetGame ()
+    private void resetGame()
     {
 
         timerDuration = 10f;
@@ -332,6 +332,10 @@ public class RockPaperScissorsScript : MonoBehaviour
                 playerLockouts[i, j] -= Time.deltaTime;
                 playerControls[i, j].SetFloat("lockout", playerLockouts[i, j]);
             }
+            if (playerLockouts[i, 2] > 0)
+                GameObject.Find("P" + (i + 1).ToString() + "WildcardSprite").GetComponent<SpriteRenderer>().color = Color.black;
+            else
+                GameObject.Find("P" + (i + 1).ToString() + "WildcardSprite").GetComponent<SpriteRenderer>().color = Color.white;
         }
     }
 
@@ -359,89 +363,120 @@ public class RockPaperScissorsScript : MonoBehaviour
     private void wildcard(int player)
     {
         int opponent = 1 - player;
-        int dice = _random.Next(1, 10);
-        switch (dice)
+        // We have 0-2 for selected wildcards.
+        int selectedWildcard = PlayerPrefs.GetInt("Player" + (player + 1).ToString() + "Wildcard", -1);
+        int dice = _random.Next(1, 5);
+        switch (selectedWildcard)
         {
+            // Aggressive hand
+            case 0:
+                _handSteal(dice, player);
+                break;
+            // Support hand
             case 1:
-                playerHands[player].Clear();
+                switch (dice)
+                {
+                    case 1:
+                        if (playerHands[player].Count > 3)
+                        {
+                            playerHands[player].RemoveAt(0);
+                            playerHands[player].RemoveAt(0);
+                            playerHands[player].RemoveAt(0);
+                        }
+                        else playerHands[player].Clear();
+                        playerHands[player].Add(("hearts", "Q"));
+                        playerHands[player].Add(("clubs", "Q"));
+                        playerHands[player].Add(("spades", "Q"));
+                        break;
+                    case 2:
+                        if (playerHands[player].Count > 2)
+                        {
+                            playerHands[player].RemoveAt(0);
+                            playerHands[player].RemoveAt(0);
+                        }
+                        else playerHands[player].Clear();
+                        playerHands[player].Add(("hearts", "A"));
+                        playerHands[player].Add(("spades", "A"));
+                        break;
+                    case 3:
+                        if (playerHands[player].Count > 3)
+                        {
+                            playerHands[player].RemoveAt(0);
+                            playerHands[player].RemoveAt(0);
+                            playerHands[player].RemoveAt(0);
+                        }
+                        else playerHands[player].Clear();
+                        playerHands[player].Add(("hearts", "K"));
+                        playerHands[player].Add(("clubs", "Q"));
+                        playerHands[player].Add(("spades", "J"));
+                        break;
+                    case 4:
+                        if (playerHands[player].Count > 4)
+                        {
+                            playerHands[player].RemoveAt(0);
+                            playerHands[player].RemoveAt(0);
+                            playerHands[player].RemoveAt(0);
+                            playerHands[player].RemoveAt(0);
+                        }
+                        else playerHands[player].Clear();
+
+                        playerHands[player].Add(("hearts", "J"));
+                        playerHands[player].Add(("clubs", "J"));
+                        playerHands[player].Add(("spades", "J"));
+                        playerHands[player].Add(("diamonds", "J"));
+                        break;
+                }
                 break;
+            // Gamble hand
             case 2:
-                if (playerHands[opponent].Count > 0) playerHands[opponent].Clear();
-                break;
-            case 3:
-                if (playerHands[player].Count > 0) playerHands[player].RemoveAt(0);
-                break;
-            case 4:
-                if (playerHands[player].Count > 2)
+                Debug.Log(dice.ToString());
+                switch (dice)
                 {
-                    playerHands[player].RemoveAt(0);
-                    playerHands[player].RemoveAt(0);
+                    case 1:
+                        playerHands[player].Clear();
+                        break;
+                    case 2:
+                    case 3:
+                        if (playerHands[player].Count > 2)
+                        {
+                            playerHands[player].RemoveAt(0);
+                            playerHands[player].RemoveAt(0);
+                        }
+                        else playerHands[player].Clear();
+                        break;
+                    case 4:
+                        playerHands[player].Clear();
+                        playerHands[player].Add(("hearts", "A"));
+                        playerHands[player].Add(("hearts", "K"));
+                        playerHands[player].Add(("hearts", "Q"));
+                        playerHands[player].Add(("hearts", "J"));
+                        playerHands[player].Add(("hearts", "10"));
+                        break;
                 }
-                else playerHands[player].Clear();
                 break;
-            case 5:
-                if (playerHands[player].Count > 2)
-                {
-                    playerHands[player].RemoveAt(0);
-                    playerHands[player].RemoveAt(0);
-                }
-                else playerHands[player].Clear();
-                playerHands[player].Add(("hearts", "A"));
-                playerHands[player].Add(("spades", "A"));
-                break;
-            case 6:
-                if (playerHands[player].Count > 3)
-                {
-                    playerHands[player].RemoveAt(0);
-                    playerHands[player].RemoveAt(0);
-                    playerHands[player].RemoveAt(0);
-                }
-                else playerHands[player].Clear();
 
-                playerHands[player].Add(("hearts", "K"));
-                playerHands[player].Add(("clubs", "Q"));
-                playerHands[player].Add(("spades", "J"));
-                break;
-            case 7:
-                if (playerHands[player].Count > 3)
-                {
-                    playerHands[player].RemoveAt(0);
-                    playerHands[player].RemoveAt(0);
-                    playerHands[player].RemoveAt(0);
-                }
-                else playerHands[player].Clear();
-
-                playerHands[player].Add(("hearts", "Q"));
-                playerHands[player].Add(("clubs", "Q"));
-                playerHands[player].Add(("spades", "Q"));
-                break;
-            case 8:
-                if (playerHands[player].Count > 4)
-                {
-                    playerHands[player].RemoveAt(0);
-                    playerHands[player].RemoveAt(0);
-                    playerHands[player].RemoveAt(0);
-                    playerHands[player].RemoveAt(0);
-                }
-                else playerHands[player].Clear();
-
-                playerHands[player].Add(("hearts", "J"));
-                playerHands[player].Add(("clubs", "J"));
-                playerHands[player].Add(("spades", "J"));
-                playerHands[player].Add(("diamonds", "J"));
-                break;
-            case 9:
-                playerHands[player].Clear();
-
-                playerHands[player].Add(("hearts", "A"));
-                playerHands[player].Add(("hearts", "K"));
-                playerHands[player].Add(("hearts", "Q"));
-                playerHands[player].Add(("hearts", "J"));
-                playerHands[player].Add(("hearts", "10"));
-
-                Debug.Log(DECK_FRAMEWORK.evaluateHand(playerHands[player].ToArray()).ToString());
-                break;
         }
         playerLockouts[player, 2] = 4f;
+
+    }
+
+    private void _handSteal(int number, int player)
+    {
+        int opponent = 1 - player;
+        List<(string, string)> temp = playerHands[opponent];
+        while (playerHands[player].Count > 5 - number)
+        {
+            playerHands[player].RemoveAt(0);
+        }
+        int limit;
+        if (temp.Count > number)
+            limit = number;
+        else
+            limit = temp.Count;
+        for (int i = 0; i < limit; i++)
+        {
+            playerHands[player].Add(playerHands[opponent][0]);
+            playerHands[opponent].RemoveAt(0);
+        }
     }
 }

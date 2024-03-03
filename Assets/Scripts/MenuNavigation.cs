@@ -47,6 +47,8 @@ public class MenuNavigation : MonoBehaviour
         screenAnimator.SetTrigger("characterSelect");
         splashObj.transform.GetChild(0).gameObject.SetActive(false);
         characterSelectObj.transform.GetChild(0).gameObject.SetActive(true);
+        characterSelectObj.transform.GetChild(0).gameObject.SetActive(true);
+        PlayerPrefs.DeleteAll();
         // switchScene("MainScene");
     }
     public void credits()
