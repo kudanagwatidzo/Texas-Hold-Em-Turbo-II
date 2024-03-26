@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 using UnityEngine;
+using UnityEditor.Animations;
 using UnityEditor;
 using TMPro;
 
@@ -12,7 +13,7 @@ public class RockPaperScissorsScript : MonoBehaviour
     System.Random _random = new System.Random();
     private int winner, loser;
     private float timerDuration;
-    private bool roundOver;
+    private bool roundOver = false;
     private string p1Option, p2Option;
     private int[] playerHealth = new int[2];
     private int[] playerPower = new int[2];
@@ -21,27 +22,32 @@ public class RockPaperScissorsScript : MonoBehaviour
     public List<int> rounds = new List<int>();
     private List<(string, string)>[] playerHands = new List<(string, string)>[2];
     private GameObject[] players = new GameObject[2];
+    private GameObject[] assists = new GameObject[2];
     private DeckScript DECK_FRAMEWORK;
     private Dictionary<string, Sprite> _cards, _health;
     public Sprite[] wildcardSprites = new Sprite[3];
+    public AnimatorController[] assistAnimators = new AnimatorController[3];
     private TextMeshProUGUI timerVisual, currentP1, currentP2;
     private GameObject textDescription, menu;
 
     // Start is called before the first frame update
     void Start()
     {
-        roundOver = false;
         // Grab the necessary game objects on screen
         timerVisual = GameObject.Find("Timer").GetComponent<TextMeshProUGUI>();
         currentP1 = GameObject.Find("Player1Current").GetComponent<TextMeshProUGUI>();
         currentP2 = GameObject.Find("Player2Current").GetComponent<TextMeshProUGUI>();
+        // Grab players
         players[0] = GameObject.Find("Player1");
         players[1] = GameObject.Find("Player2");
+        // Grab assists: TODO
+        assists[0] = GameObject.Find("Assist1");
+        assists[1] = GameObject.Find("Assist2");
+        
         textDescription = GameObject.Find("Descriptions");
         menu = GameObject.Find("Menus");
-        // Get wildcard graphics from character select ready
-        GameObject.Find("P1WildcardSprite").GetComponent<SpriteRenderer>().sprite = wildcardSprites[PlayerPrefs.GetInt("Player1Wildcard", -1)];
-        GameObject.Find("P2WildcardSprite").GetComponent<SpriteRenderer>().sprite = wildcardSprites[PlayerPrefs.GetInt("Player2Wildcard", -1)];
+
+        loadCharacterSelectData();
         // Set up deck framework
         DECK_FRAMEWORK = GameObject.Find("Deck").GetComponent<DeckScript>();
         // Start playthrough
@@ -119,6 +125,18 @@ public class RockPaperScissorsScript : MonoBehaviour
         }
     }
 
+    private void loadCharacterSelectData ()
+    {
+        int p1Assist = PlayerPrefs.GetInt("Player1Wildcard", 1);
+        int p2Assist = PlayerPrefs.GetInt("Player2Wildcard", 1);
+        // Set wildcard icons from character select
+        GameObject.Find("P1WildcardSprite").GetComponent<SpriteRenderer>().sprite = wildcardSprites[p1Assist];
+        GameObject.Find("P2WildcardSprite").GetComponent<SpriteRenderer>().sprite = wildcardSprites[p2Assist];
+        // Set wildcard assist sprites
+        GameObject.Find("Assist1").GetComponent<Animator>().runtimeAnimatorController = assistAnimators[p1Assist];
+        GameObject.Find("Assist2").GetComponent<Animator>().runtimeAnimatorController = assistAnimators[p2Assist];
+    }
+
     private void resetGame()
     {
 
@@ -148,8 +166,6 @@ public class RockPaperScissorsScript : MonoBehaviour
 
         players[1].transform.Find("PlayerSprite").GetComponent<Animator>().Rebind();
         players[1].transform.Find("PlayerSprite").GetComponent<Animator>().Update(0f);
-        // players[0].transform.Find("PlayerSprite").GetComponent<Animator>().SetTrigger("Reset");
-        // players[1].transform.Find("PlayerSprite").GetComponent<Animator>().SetTrigger("Reset");
     }
 
     private void loadCards()
@@ -362,9 +378,10 @@ public class RockPaperScissorsScript : MonoBehaviour
 
     private void wildcard(int player)
     {
+        assists[player].GetComponent<Animator>().SetTrigger("assistEffect");
         int opponent = 1 - player;
         // We have 0-2 for selected wildcards.
-        int selectedWildcard = PlayerPrefs.GetInt("Player" + (player + 1).ToString() + "Wildcard", -1);
+        int selectedWildcard = PlayerPrefs.GetInt("Player" + (player + 1).ToString() + "Wildcard", 0);
         int dice = _random.Next(1, 5);
         switch (selectedWildcard)
         {

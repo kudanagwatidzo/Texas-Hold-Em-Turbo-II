@@ -18,6 +18,10 @@ Used Assets
 - 16x16 RPG Item Pack: https://alexs-assets.itch.io/16x16-rpg-item-pack
 - Pixel Health Bar and Scroll Bar: https://bdragon1727.itch.io/basic-pixel-health-bar-and-scroll-bar
 
+- Evil Wizard: https://luizmelo.itch.io/evil-wizard 
+- Wizard Pack: https://luizmelo.itch.io/wizard-pack
+- Wizard Pack 2: https://luizmelo.itch.io/evil-wizard-2 
+
 Check out BFXR
 - Sound feedback, sound potentially overlaying
 - PlayerPerf to store character select information
